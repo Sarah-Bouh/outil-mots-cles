@@ -40,8 +40,6 @@ function toItem(f) {
     distance: (num(pick(f, [/^nb_session_a_distance$/])) || 0) > 0,
     lien: null,
   };
-  // Lien vers la fiche : SIRET + identifiant de formation (le catalogue ne fournit pas l'identifiant d'action,
-  // on reprend celui de la formation, comme dans les liens publiés par de nombreux organismes)
   const siret = pick(f, [/^siret$/]);
   const idf = pick(f, [/^numero_formation$/]);
   if (siret && idf) {
@@ -89,12 +87,4 @@ module.exports = async (req, res) => {
     return true;
   }).slice(0, 10);
   const organismes = new Set(records.map((r) => String(r.organisme || "").toLowerCase()).filter(Boolean)).size;
-    const avg = (arr) => { if (!arr.length) return null; const s = [...arr].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return Math.round(s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2); };
-  const heuresMoyennes = avg(records.map((r) => r.heures).filter((v) => v != null && v > 0));
-
-  res.setHeader("Cache-Control", "s-maxage=43200, stale-while-revalidate=604800");
-  const out = { keyword: q, total, items, organismes, prixMoyen, heuresMoyennes };
-  // Diagnostic : /api/cpf?q=photographie&debug=1 affiche les colonnes du catalogue
-  if (req.query && req.query.debug) out.colonnes = raw ? Object.keys(raw) : [];
-  res.status(200).json(out);
-};
+  const avg = (arr) => { if (!arr.length) return null; const s = [...arr].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return Math.round(s.length % 2 ? s[m] :
