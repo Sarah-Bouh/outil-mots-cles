@@ -389,19 +389,22 @@ ul.kw li:first-child { border-top: 0; }
       const ul = el("ul", "cpflist");
       (d.cpf.items || []).forEach((it) => {
         const li = el("li");
+        const row = el("div"); row.style.display = "flex"; row.style.justifyContent = "space-between"; row.style.gap = "10px"; row.style.alignItems = "flex-start";
         const link = el("a", null, String(it.titre));
-        link.href = it.lien || ("https://www.google.com/search?q=" + encodeURIComponent(it.titre + " " + (it.organisme || "") + " moncompteformation"));
+        link.href = "https://www.moncompteformation.gouv.fr/espace-prive/html/#/formation/recherche";
         link.target = "_blank"; link.rel = "noopener noreferrer";
         link.style.color = "var(--text)"; link.style.fontWeight = "600";
-        link.title = it.lien ? "Ouvrir la fiche sur Mon Compte Formation" : "Rechercher cette formation";
-        li.appendChild(link);
+        link.title = "Ouvrir la recherche de Mon Compte Formation";
+        const cp = el("button", "copy", "Copier"); cp.type = "button"; cp.setAttribute("aria-label", "Copier le titre : " + it.titre);
+        cp.addEventListener("click", () => copyText(String(it.titre), cp));
+        row.appendChild(link); row.appendChild(cp); li.appendChild(row);
         const meta = [it.organisme, it.ville, it.prix ? "≈ " + Math.round(it.prix).toLocaleString("fr-FR") + " €" : null, it.heures ? Math.round(it.heures) + " h" : null, it.distance ? "à distance possible" : null].filter(Boolean).join(" · ");
         if (meta) li.appendChild(el("small", null, meta));
         ul.appendChild(li);
       });
       if (!ul.children.length) ul.appendChild(el("li", "empty", "Aucune formation trouvée pour ce mot-clé."));
       wrap.appendChild(ul); cpf.appendChild(wrap);
-      cpf.appendChild(el("p", "srcnote", "Source : catalogue Mon Compte Formation, open data de la Caisse des Dépôts."));
+      cpf.appendChild(el("p", "srcnote", "Pour voir une formation : copiez son titre, cliquez dessus pour ouvrir Mon Compte Formation, puis collez-le dans la recherche. Source : catalogue Mon Compte Formation, open data de la Caisse des Dépôts."));
     } else {
       const p = el("p", "empty", "Le catalogue CPF n’est pas accessible ici. ");
       const a = el("a", null, "Chercher sur Mon Compte Formation"); a.href = "https://www.moncompteformation.gouv.fr/espace-prive/html/#/formation/recherche?q=" + encodeURIComponent(d.kw); a.target = "_blank"; a.rel = "noopener noreferrer"; a.style.color = "var(--teal)";
