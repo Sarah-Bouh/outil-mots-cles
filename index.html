@@ -381,7 +381,13 @@ ul.kw li:first-child { border-top: 0; }
       wrap.appendChild(big);
       const ul = el("ul", "cpflist");
       (d.cpf.items || []).forEach((it) => {
-        const li = el("li"); li.appendChild(el("span", null, String(it.titre)));
+        const li = el("li");
+        const link = el("a", null, String(it.titre));
+        link.href = it.lien || ("https://www.google.com/search?q=" + encodeURIComponent(it.titre + " " + (it.organisme || "") + " moncompteformation"));
+        link.target = "_blank"; link.rel = "noopener noreferrer";
+        link.style.color = "var(--text)"; link.style.fontWeight = "600";
+        link.title = it.lien ? "Ouvrir la fiche sur Mon Compte Formation" : "Rechercher cette formation";
+        li.appendChild(link);
         const meta = [it.organisme, it.ville].filter(Boolean).join(" · ");
         if (meta) li.appendChild(el("small", null, meta));
         ul.appendChild(li);
