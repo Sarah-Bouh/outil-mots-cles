@@ -42,13 +42,13 @@ module.exports = async (req, res) => {
   let total = null, records = [];
 
   // API Opendatasoft v2.1 : recherche plein texte sur tous les champs
-  const v2 = await getJson(HOST + "/api/explore/v2.1/catalog/datasets/" + DATASET + "/records?limit=40&where=" + encodeURIComponent('"' + q.replace(/"/g, "") + '"'));
+  const v2 = await getJson(HOST + "/api/explore/v2.1/catalog/datasets/" + DATASET + "/records?limit=100&where=" + encodeURIComponent('"' + q.replace(/"/g, "") + '"'));
   if (v2 && typeof v2.total_count === "number") {
     total = v2.total_count;
     records = (v2.results || []).map(toItem);
   } else {
     // Repli : ancienne API v1
-    const v1 = await getJson(HOST + "/api/records/1.0/search/?dataset=" + DATASET + "&rows=40&q=" + encodeURIComponent(q));
+    const v1 = await getJson(HOST + "/api/records/1.0/search/?dataset=" + DATASET + "&rows=100&q=" + encodeURIComponent(q));
     if (v1 && typeof v1.nhits === "number") {
       total = v1.nhits;
       records = (v1.records || []).map((r) => toItem(r.fields));
@@ -57,15 +57,20 @@ module.exports = async (req, res) => {
 
   if (total === null) { res.status(502).json({ error: "Catalogue CPF indisponible" }); return; }
 
-  const seen = new Set();
+  // Varier les organismes : au plus 2 formations par organisme
+  const seen = new Set(), perOrg = {};
   const items = records.filter((r) => {
     if (!r.titre) return false;
     const k = String(r.titre).toLowerCase();
     if (seen.has(k)) return false;
+    const org = String(r.organisme || "?").toLowerCase();
+    if ((perOrg[org] || 0) >= 2) return false;
     seen.add(k);
+    perOrg[org] = (perOrg[org] || 0) + 1;
     return true;
   }).slice(0, 10);
+  const organismes = new Set(records.map((r) => String(r.organisme || "").toLowerCase()).filter(Boolean)).size;
 
   res.setHeader("Cache-Control", "s-maxage=43200, stale-while-revalidate=604800");
-  res.status(200).json({ keyword: q, total, items });
+  res.status(200).json({ keyword: q, total, items, organismes });
 };
