@@ -295,7 +295,11 @@ ul.kw li:first-child { border-top: 0; }
     let live = !!(sug && Array.isArray(sug.questions) && sug.total > 0);
     let data;
     if (live) {
-      data = { kw, live, questions: sug.questions, prep: sug.prepositions || [], comp: sug.comparisons || [], alphabet: sug.alphabet || [], youtube: sug.youtube || [], base: sug.base || [], cpf };
+      // YouTube corrige parfois le mot tapé : on ne garde que les recherches qui contiennent vraiment le mot-clé
+      const norm = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const stems = norm(kw).split(/[^a-z0-9]+/).filter((w) => w.length >= 4).map((w) => w.slice(0, Math.min(6, w.length)));
+      const relevant = (s) => !stems.length || stems.some((st) => norm(s).includes(st));
+      data = { kw, live, questions: sug.questions, prep: sug.prepositions || [], comp: sug.comparisons || [], alphabet: sug.alphabet || [], youtube: (sug.youtube || []).filter(relevant), base: sug.base || [], cpf };
     } else {
       const fill = (t) => t.split("{k}").join(kw);
       data = { kw, live, questions: WORDS.map((w) => ({ mot: w, items: T[w].map(fill) })), prep: PREP.map(fill), comp: COMP.map(fill), alphabet: [], youtube: [], base: [], cpf };
@@ -380,8 +384,8 @@ ul.kw li:first-child { border-top: 0; }
       big.appendChild(el("span", null, (d.cpf.total > 1 ? "résultats" : "résultat") + " dans le catalogue CPF pour « " + d.kw + " »"));
       if (d.cpf.prixMoyen || d.cpf.heuresMoyennes) {
         const bits = [];
-        if (d.cpf.prixMoyen) bits.push("Prix moyen : " + d.cpf.prixMoyen.toLocaleString("fr-FR") + " €");
-        if (d.cpf.heuresMoyennes) bits.push("Durée moyenne : " + d.cpf.heuresMoyennes + " h");
+        if (d.cpf.prixMoyen) bits.push("Prix médian : " + d.cpf.prixMoyen.toLocaleString("fr-FR") + " €");
+        if (d.cpf.heuresMoyennes) bits.push("Durée médiane : " + d.cpf.heuresMoyennes + " h");
         const extra = el("span", null, bits.join(" · ")); extra.style.marginTop = "14px"; extra.style.fontWeight = "600";
         big.appendChild(extra);
       }
@@ -404,7 +408,7 @@ ul.kw li:first-child { border-top: 0; }
       });
       if (!ul.children.length) ul.appendChild(el("li", "empty", "Aucune formation trouvée pour ce mot-clé."));
       wrap.appendChild(ul); cpf.appendChild(wrap);
-      cpf.appendChild(el("p", "srcnote", "Pour voir une formation : copiez son titre, cliquez dessus pour ouvrir Mon Compte Formation, puis collez-le dans la recherche. Source : catalogue Mon Compte Formation, open data de la Caisse des Dépôts."));
+      cpf.appendChild(el("p", "srcnote", "Le prix et la durée médians sont ceux de la formation « du milieu » : la moitié des formations coûtent moins, l’autre moitié plus. Pour voir une formation : copiez son titre, cliquez dessus pour ouvrir Mon Compte Formation, puis collez-le dans la recherche. Source : catalogue Mon Compte Formation, open data de la Caisse des Dépôts."));
     } else {
       const p = el("p", "empty", "Le catalogue CPF n’est pas accessible ici. ");
       const a = el("a", null, "Chercher sur Mon Compte Formation"); a.href = "https://www.moncompteformation.gouv.fr/espace-prive/html/#/formation/recherche?q=" + encodeURIComponent(d.kw); a.target = "_blank"; a.rel = "noopener noreferrer"; a.style.color = "var(--teal)";
