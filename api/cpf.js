@@ -26,32 +26,49 @@ function pick(obj, patterns) {
   return null;
 }
 
+const FICHE = "https://www.moncompteformation.gouv.fr/espace-prive/html/#/formation/recherche/";
+
 function toItem(f) {
-  return {
+  const item = {
     titre: pick(f, [/^intitule_formation$/, /intitule.*formation/, /intitule/]),
     organisme: pick(f, [/^nom_of$/, /nom.*of/, /organisme/, /raison_sociale/]),
     certification: pick(f, [/intitule.*certif/, /libelle.*certif/, /certif/]),
     ville: pick(f, [/ville/, /commune/, /nom_departement/, /departement/]),
+    lien: null,
   };
+  // Lien direct vers la fiche : SIRET + identifiant de formation + identifiant d'action
+  const url = pick(f, [/url/, /lien/]);
+  if (typeof url === "string" && /^https?:\/\//.test(url)) { item.lien = url; return item; }
+  const siret = pick(f, [/^siret$/, /siret/]);
+  const idf = pick(f, [/^numero_formation$/, /numero.*formation/, /^id_formation/, /identifiant.*formation/]);
+  const ida = pick(f, [/^numero_action$/, /numero.*action/, /^id_action/, /identifiant.*action/]);
+  if (siret && idf && ida) {
+    const s = String(siret).replace(/\D/g, "");
+    const withSiret = (id) => (String(id).startsWith(s + "_") ? String(id) : s + "_" + id);
+    item.lien = FICHE + withSiret(idf) + "/" + withSiret(ida);
+  }
+  return item;
 }
 
 module.exports = async (req, res) => {
   const q = String((req.query && req.query.q) || "").trim().slice(0, 60);
   if (!q) { res.status(400).json({ error: "Mot-clé manquant" }); return; }
 
-  let total = null, records = [];
+  let total = null, records = [], raw = null;
 
   // API Opendatasoft v2.1 : recherche plein texte sur tous les champs
   const v2 = await getJson(HOST + "/api/explore/v2.1/catalog/datasets/" + DATASET + "/records?limit=100&where=" + encodeURIComponent('"' + q.replace(/"/g, "") + '"'));
   if (v2 && typeof v2.total_count === "number") {
     total = v2.total_count;
     records = (v2.results || []).map(toItem);
+    raw = (v2.results || [])[0] || null;
   } else {
     // Repli : ancienne API v1
     const v1 = await getJson(HOST + "/api/records/1.0/search/?dataset=" + DATASET + "&rows=100&q=" + encodeURIComponent(q));
     if (v1 && typeof v1.nhits === "number") {
       total = v1.nhits;
       records = (v1.records || []).map((r) => toItem(r.fields));
+      raw = ((v1.records || [])[0] || {}).fields || null;
     }
   }
 
@@ -72,5 +89,8 @@ module.exports = async (req, res) => {
   const organismes = new Set(records.map((r) => String(r.organisme || "").toLowerCase()).filter(Boolean)).size;
 
   res.setHeader("Cache-Control", "s-maxage=43200, stale-while-revalidate=604800");
-  res.status(200).json({ keyword: q, total, items, organismes });
+  const out = { keyword: q, total, items, organismes };
+  // Diagnostic : /api/cpf?q=photographie&debug=1 affiche les colonnes du catalogue
+  if (req.query && req.query.debug) out.colonnes = raw ? Object.keys(raw) : [];
+  res.status(200).json(out);
 };
