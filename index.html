@@ -165,7 +165,7 @@ ul.kw li:first-child { border-top: 0; }
       </div>
       <button class="go" id="go" type="submit">Trouver les recherches</button>
     </div>
-    <div class="tries">Essayez :
+    <div class="tries">Essayez :
       <button type="button" class="chip" data-kw="photographie">photographie</button>
       <button type="button" class="chip" data-kw="jardinage">jardinage</button>
       <button type="button" class="chip" data-kw="comptabilité">comptabilité</button>
@@ -207,7 +207,7 @@ ul.kw li:first-child { border-top: 0; }
 
     <div class="section" id="sec-cpf">
       <h2>Dans le catalogue CPF</h2>
-      <p>Les formations certifiantes proposées sur Mon Compte Formation pour ce mot-clé : de quoi mesurer la concurrence et repérer les sujets.</p>
+      <p>Les formations certifiantes proposées sur Mon Compte Formation pour ce mot-clé, avec des organismes variés : de quoi mesurer la concurrence et repérer les sujets. Le catalogue étant découpé par département, une même formation peut apparaître plusieurs fois dans le total.</p>
       <div id="cpf"></div>
     </div>
 
@@ -241,7 +241,7 @@ ul.kw li:first-child { border-top: 0; }
           </div>
         </div>
       </div>
-      <p class="ai-off" id="aiOff" style="margin-top:14px">Cliquez sur « Copier la demande », puis collez-la dans <a href="https://claude.ai/new" target="_blank" rel="noopener noreferrer" style="color:var(--teal);font-weight:600">Claude</a> ou dans l’IA de votre choix : vous obtiendrez des idées de posts et des titres d’articles adaptés à votre activité.</p>
+      <p class="ai-off" id="aiOff" style="margin-top:14px">Cliquez sur « Copier la demande », puis collez-la dans <a href="https://claude.ai/new" target="_blank" rel="noopener noreferrer" style="color:var(--teal);font-weight:600">Claude</a> ou dans l’IA de votre choix : vous obtiendrez des idées de posts et des titres d’articles adaptés à votre activité.</p>
     </div>
   </div>
 </div>
@@ -377,7 +377,7 @@ ul.kw li:first-child { border-top: 0; }
     if (d.cpf && typeof d.cpf.total === "number") {
       const wrap = el("div", "cpf");
       const big = el("div", "bignum"); big.appendChild(el("strong", null, d.cpf.total.toLocaleString("fr-FR")));
-      big.appendChild(el("span", null, (d.cpf.total > 1 ? "offres de formation CPF" : "offre de formation CPF") + " liées à « " + d.kw + " »"));
+      big.appendChild(el("span", null, (d.cpf.total > 1 ? "résultats" : "résultat") + " dans le catalogue CPF pour « " + d.kw + " »"));
       wrap.appendChild(big);
       const ul = el("ul", "cpflist");
       (d.cpf.items || []).forEach((it) => {
