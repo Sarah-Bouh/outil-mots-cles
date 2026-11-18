@@ -123,12 +123,39 @@ ul.kw li:first-child { border-top: 0; }
 #aiOut { display: none; margin-top: 20px; }
 #aiOut.on { display: block; }
 #aiOut .two { margin-top: 14px; }
+
+.badge { display: inline-block; font-size: 0.78rem; font-weight: 600; border-radius: 999px; padding: 2px 10px; margin-left: 8px; vertical-align: middle; }
+.badge.live { background: var(--teal); color: #fff; }
+.badge.ideas { background: var(--sun); color: #264653; }
+.alphagrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.letter { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; }
+.letter h3 { font-size: 1.05rem; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: baseline; }
+.letter ul { list-style: none; margin: 0; padding: 0; }
+.letter li { padding: 4px 0; border-top: 1px solid var(--line); font-size: 0.92rem; }
+.letter li:first-child { border-top: 0; }
+.letter a { color: var(--text); text-decoration: none; }
+.letter a:hover { text-decoration: underline; }
+.empty { color: var(--muted); font-size: 0.9rem; font-style: italic; }
+.cpf { display: grid; grid-template-columns: minmax(200px, 280px) 1fr; gap: 18px; align-items: start; }
+@media (max-width: 720px) { .cpf { grid-template-columns: 1fr; } }
+.bignum { background: var(--ink); color: var(--bg); border-radius: 20px; padding: 22px; }
+:root .bignum { background: #264653; color: #ffffff; }
+.bignum strong { display: block; font-family: "Bricolage Grotesque", "Figtree", sans-serif; font-size: clamp(2.6rem, 6vw, 3.6rem); font-weight: 800; line-height: 1; }
+.bignum span { display: block; margin-top: 8px; font-size: 0.95rem; opacity: 0.9; }
+.cpflist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.cpflist li { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; }
+.cpflist small { display: block; color: var(--muted); }
+.socials { display: flex; flex-wrap: wrap; gap: 10px; }
+.socials a { display: inline-flex; align-items: center; gap: 8px; background: var(--surface); border: 2px solid var(--line); color: var(--text); text-decoration: none; border-radius: 14px; padding: 12px 16px; font-weight: 600; }
+.socials a:hover { border-color: var(--teal); }
+.socials a:focus-visible, .letter a:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+.srcnote { color: var(--muted); font-size: 0.88rem; margin-top: 10px; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Trouvez ce que les gens cherchent</h1>
-  <p class="lead">Tapez un mot de votre métier : l’outil liste les recherches que les internautes font le plus souvent autour de ce mot. Chaque recherche s’ouvre dans Google pour voir les vrais résultats et les « Autres questions ».</p>
+  <p class="lead">Tapez un mot de votre métier : l’outil affiche les vraies recherches Google et YouTube autour de ce mot, les formations du catalogue CPF, et des raccourcis vers les réseaux sociaux.</p>
 
   <form class="search" id="form" autocomplete="off">
     <div class="row">
@@ -159,17 +186,35 @@ ul.kw li:first-child { border-top: 0; }
 
     <div class="section">
       <h2>Autres recherches</h2>
-      <p>Des recherches plus précises, souvent plus faciles à viser pour un article de blog.</p>
+      <p>Les recherches avec des prépositions et des comparaisons, souvent plus précises et plus faciles à viser pour un article de blog.</p>
       <div class="two">
         <div class="group" id="g-prep"></div>
         <div class="group" id="g-comp"></div>
       </div>
     </div>
 
-    <div class="section">
+    <div class="section" id="sec-alpha">
       <h2>L’alphabet de Google</h2>
-      <p>Comme AnswerThePublic : ouvrez votre mot suivi d’une lettre dans Google, et regardez les suggestions et les « Autres questions » qui apparaissent.</p>
-      <div class="alpha" id="alpha"></div>
+      <p>Ce que Google propose quand on tape votre mot suivi de chaque lettre.</p>
+      <div class="alphagrid" id="alpha"></div>
+    </div>
+
+    <div class="section" id="sec-yt">
+      <h2>Sur YouTube</h2>
+      <p>Les recherches tapées sur YouTube : une mine d’idées pour vos vidéos, reels et stories.</p>
+      <div class="group" id="g-yt"></div>
+    </div>
+
+    <div class="section" id="sec-cpf">
+      <h2>Dans le catalogue CPF</h2>
+      <p>Les formations certifiantes proposées sur Mon Compte Formation pour ce mot-clé : de quoi mesurer la concurrence et repérer les sujets.</p>
+      <div id="cpf"></div>
+    </div>
+
+    <div class="section">
+      <h2>Sur les réseaux sociaux</h2>
+      <p>Ouvrez la recherche de votre mot-clé sur chaque réseau pour voir ce qui se publie et ce qui fait réagir.</p>
+      <div class="socials" id="socials"></div>
     </div>
 
     <div class="actions">
@@ -178,25 +223,25 @@ ul.kw li:first-child { border-top: 0; }
 
     <div class="ai" id="ai">
       <h2>Aller plus loin avec Claude</h2>
-      <p>Obtenez des questions supplémentaires et des idées de posts et d’articles adaptées à votre activité.</p>
-      <div id="aiOn" style="display:none">
-        <div class="row">
-          <div class="field">
-            <label for="act">Votre activité <small>(facultatif)</small></label>
-            <input type="text" id="act" placeholder="Formation photo pour débutants, à Pau" maxlength="200">
-          </div>
-          <button class="go" id="aiGo" type="button">Générer des idées</button>
+      <p>Obtenez des idées de posts et d’articles adaptées à votre activité, à partir de votre mot-clé.</p>
+      <div class="row">
+        <div class="field">
+          <label for="act">Votre activité <small>(facultatif)</small></label>
+          <input type="text" id="act" placeholder="Formation photo pour débutants, à Pau" maxlength="200">
         </div>
+        <button class="go" id="aiGo" type="button" style="display:none">Générer des idées</button>
+        <button class="go" id="promptCopy" type="button">Copier la demande</button>
+      </div>
+      <div id="aiOn" style="display:none">
         <p class="status" id="aiStatus" role="status" aria-live="polite"></p>
         <div id="aiOut">
-          <div class="group" id="ai-q"></div>
           <div class="two">
             <div class="col"><h3>Pour les réseaux sociaux</h3><ul class="ideas" id="i-social"></ul></div>
             <div class="col"><h3>Pour le blog</h3><ul class="ideas" id="i-blog"></ul></div>
           </div>
         </div>
       </div>
-      <p class="ai-off" id="aiOff">Cette partie est disponible quand vous ouvrez l’outil depuis votre compte Claude. Le reste de l’outil fonctionne pour tout le monde.</p>
+      <p class="ai-off" id="aiOff" style="margin-top:14px">Cliquez sur « Copier la demande », puis collez-la dans <a href="https://claude.ai/new" target="_blank" rel="noopener noreferrer" style="color:var(--teal);font-weight:600">Claude</a> ou dans l’IA de votre choix : vous obtiendrez des idées de posts et des titres d’articles adaptés à votre activité.</p>
     </div>
   </div>
 </div>
@@ -206,48 +251,69 @@ ul.kw li:first-child { border-top: 0; }
   const WORDS = ["comment", "pourquoi", "quel", "combien", "quand", "où", "qui", "est-ce que", "peut-on"];
   const COLORS = ["#2a9d8f", "#e9c46a", "#f4a261", "#e76f51", "#264653", "#2a9d8f", "#e9c46a", "#f4a261", "#e76f51"];
   const TEXT_ON = ["#ffffff", "#264653", "#264653", "#ffffff", "#ffffff", "#ffffff", "#264653", "#264653", "#ffffff"];
+  // Modèles de secours, utilisés seulement si les données en direct sont indisponibles
   const T = {
-    "comment": ["comment débuter en {k}", "comment se former en {k}", "comment progresser en {k}", "comment trouver une formation en {k}", "comment financer une formation en {k}"],
-    "pourquoi": ["pourquoi se former en {k}", "pourquoi se reconvertir en {k}", "pourquoi apprendre {k} avec un professionnel", "pourquoi faire une formation certifiante en {k}"],
-    "quel": ["quelle formation en {k} choisir", "quel matériel pour débuter en {k}", "quels métiers en {k}", "quel diplôme pour travailler en {k}", "quelles compétences en {k}"],
-    "combien": ["combien coûte une formation en {k}", "combien de temps pour se former en {k}", "combien gagne un professionnel en {k}"],
-    "quand": ["quand commencer une formation en {k}", "quand se reconvertir en {k}", "quand s’inscrire à une formation en {k}"],
-    "où": ["où se former en {k}", "où trouver une formation en {k} près de chez moi", "où travailler en {k}"],
-    "qui": ["qui peut se former en {k}", "qui finance une formation en {k}", "qui recrute en {k}"],
-    "est-ce que": ["est-ce que le CPF finance une formation en {k}", "est-ce qu’une formation en {k} est reconnue", "est-ce qu’on peut apprendre {k} seul"],
-    "peut-on": ["peut-on se former en {k} à distance", "peut-on se reconvertir en {k}", "peut-on apprendre {k} à 40 ans", "peut-on vivre de {k}"],
+    "comment": ["comment débuter en {k}", "comment se former en {k}", "comment trouver une formation en {k}"],
+    "pourquoi": ["pourquoi se former en {k}", "pourquoi se reconvertir en {k}"],
+    "quel": ["quelle formation en {k} choisir", "quel matériel pour débuter en {k}"],
+    "combien": ["combien coûte une formation en {k}", "combien de temps pour se former en {k}"],
+    "quand": ["quand commencer une formation en {k}"],
+    "où": ["où se former en {k}", "où trouver une formation en {k}"],
+    "qui": ["qui finance une formation en {k}"],
+    "est-ce que": ["est-ce que le CPF finance une formation en {k}"],
+    "peut-on": ["peut-on se former en {k} à distance", "peut-on se reconvertir en {k}"],
   };
-  const PREP = ["{k} pour débutant", "{k} pour les nuls", "{k} sans diplôme", "{k} avec le CPF", "{k} à distance", "{k} en ligne", "{k} près de chez moi", "{k} en alternance", "formation {k}", "{k} salaire", "{k} débouchés"];
-  const COMP = ["formation {k} en ligne ou en présentiel", "{k} : apprendre seul ou se former", "{k} : formation courte ou longue", "{k} : école ou organisme de formation", "{k} : CPF ou financement personnel"];
+  const PREP = ["{k} pour débutant", "{k} sans diplôme", "{k} avec le CPF", "{k} à distance", "{k} en ligne"];
+  const COMP = ["formation {k} en ligne ou en présentiel", "{k} : apprendre seul ou se former"];
 
   const $ = (id) => document.getElementById(id);
-  const form = $("form"), kwIn = $("kw"), status = $("status");
-  let current = null, sample = null;
+  const form = $("form"), kwIn = $("kw"), status = $("status"), go = $("go");
+  let current = null, sample = null, busy = false;
 
   try { const a = localStorage.getItem("mc-act"); if (a) $("act").value = a; } catch (e) {}
-
   if (window.claude && typeof window.claude.use === "function") {
-    window.claude.use("sample").then((s) => { if (s) { sample = s; $("aiOn").style.display = "block"; $("aiOff").style.display = "none"; } }).catch(() => {});
+    window.claude.use("sample").then((s) => { if (s) { sample = s; $("aiOn").style.display = "block"; $("aiOff").style.display = "none"; $("aiGo").style.display = ""; $("promptCopy").style.display = "none"; } }).catch(() => {});
   }
-
   document.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => { kwIn.value = c.dataset.kw; form.requestSubmit(); }));
 
-  form.addEventListener("submit", (e) => {
+  async function getJson(url, ms) {
+    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), ms);
+    try { const r = await fetch(url, { signal: ctrl.signal }); if (!r.ok) return null; return await r.json(); }
+    catch (e) { return null; } finally { clearTimeout(t); }
+  }
+
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const kw = kwIn.value.trim().replace(/\s+/g, " ").toLowerCase();
-    if (!kw) return;
-    const fill = (t) => t.split("{k}").join(kw);
-    const questions = WORDS.map((w) => ({ mot: w, items: T[w].map(fill) }));
-    current = { kw, questions, prep: PREP.map(fill), comp: COMP.map(fill) };
-    render(current);
-    const n = questions.reduce((a, g) => a + g.items.length, 0) + current.prep.length + current.comp.length;
-    status.className = "status";
-    status.textContent = n + " recherches à explorer autour de « " + kw + " ».";
-    $("aiOut").classList.remove("on"); $("aiStatus").textContent = "";
+    if (!kw || busy) return;
+    busy = true; go.disabled = true; status.className = "status";
+    status.textContent = "Recherche en cours sur Google, YouTube et le catalogue CPF…";
+    const [sug, cpf] = await Promise.all([
+      getJson("/api/suggest?q=" + encodeURIComponent(kw), 25000),
+      getJson("/api/cpf?q=" + encodeURIComponent(kw), 15000),
+    ]);
+    let live = !!(sug && Array.isArray(sug.questions) && sug.total > 0);
+    let data;
+    if (live) {
+      data = { kw, live, questions: sug.questions, prep: sug.prepositions || [], comp: sug.comparisons || [], alphabet: sug.alphabet || [], youtube: sug.youtube || [], base: sug.base || [], cpf };
+    } else {
+      const fill = (t) => t.split("{k}").join(kw);
+      data = { kw, live, questions: WORDS.map((w) => ({ mot: w, items: T[w].map(fill) })), prep: PREP.map(fill), comp: COMP.map(fill), alphabet: [], youtube: [], base: [], cpf };
+    }
+    current = data;
+    render(data);
+    const n = data.questions.reduce((a, g) => a + g.items.length, 0) + data.prep.length + data.comp.length + data.alphabet.reduce((a, g) => a + g.items.length, 0) + data.youtube.length;
+    status.textContent = live
+      ? n + " vraies recherches trouvées autour de « " + kw + " »."
+      : "Les données en direct ne sont pas disponibles ici : voici des pistes de recherche à vérifier dans Google.";
+    busy = false; go.disabled = false;
   });
 
   function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
   const gUrl = (q) => "https://www.google.com/search?q=" + encodeURIComponent(q);
+  const ytUrl = (q) => "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const smooth = () => (matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
 
   function copyText(txt, btn) {
     const ok = () => { if (!btn) return; const prev = btn.textContent; btn.textContent = "Copié"; btn.classList.add("done"); setTimeout(() => { btn.textContent = prev; btn.classList.remove("done"); }, 1400); };
@@ -258,39 +324,88 @@ ul.kw li:first-child { border-top: 0; }
     try { const t = document.createElement("textarea"); t.value = txt; t.style.position = "fixed"; t.style.opacity = "0"; document.body.appendChild(t); t.select(); const r = document.execCommand("copy"); t.remove(); return r; } catch (e) { return false; }
   }
 
-  function list(items) {
+  function list(items, urlFn, label) {
+    if (!items.length) return el("p", "empty", "Aucune suggestion pour cette catégorie.");
     const ul = el("ul", "kw");
     items.forEach((q) => {
       const li = el("li"); li.appendChild(el("span", null, q));
       const box = el("span", "links");
-      const a = el("a", "gl", "Google"); a.href = gUrl(q); a.target = "_blank"; a.rel = "noopener noreferrer"; a.setAttribute("aria-label", "Voir dans Google : " + q);
+      const a = el("a", "gl", label); a.href = urlFn(q); a.target = "_blank"; a.rel = "noopener noreferrer"; a.setAttribute("aria-label", "Ouvrir dans " + label + " : " + q);
       const b = el("button", "copy", "Copier"); b.type = "button"; b.setAttribute("aria-label", "Copier : " + q);
       b.addEventListener("click", () => copyText(q, b));
       box.appendChild(a); box.appendChild(b); li.appendChild(box); ul.appendChild(li);
     });
     return ul;
   }
-  function groupCard(title, color, items, id) {
+  function groupCard(title, color, items, id, live, urlFn, label) {
     const card = el("div", "group"); if (id) card.id = id;
     const head = el("div", "ghead"); const h = el("h3");
     const dot = el("span", "dot"); dot.style.background = color; h.appendChild(dot); h.appendChild(document.createTextNode(title));
+    if (live === false) h.appendChild(el("span", "badge ideas", "piste"));
     head.appendChild(h); head.appendChild(el("span", "count", items.length + (items.length > 1 ? " recherches" : " recherche")));
-    card.appendChild(head); card.appendChild(list(items));
+    card.appendChild(head); card.appendChild(list(items, urlFn || gUrl, label || "Google"));
     return card;
   }
-  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-  const smooth = () => (matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
 
   function render(d) {
     $("results").classList.add("on");
     const groups = $("groups"); groups.textContent = "";
-    d.questions.forEach((g, i) => groups.appendChild(groupCard(cap(g.mot) + "…", COLORS[i], g.items, "grp-" + i)));
-    $("g-prep").replaceWith(groupCard("Avec des précisions", "#2a9d8f", d.prep, "g-prep"));
-    $("g-comp").replaceWith(groupCard("Comparaisons", "#e76f51", d.comp, "g-comp"));
+    d.questions.forEach((g, i) => groups.appendChild(groupCard(cap(g.mot) + "…", COLORS[i], g.items, "grp-" + i, d.live)));
+    $("g-prep").replaceWith(groupCard("Avec des prépositions", "#2a9d8f", d.prep, "g-prep", d.live));
+    $("g-comp").replaceWith(groupCard("Comparaisons", "#e76f51", d.comp, "g-comp", d.live));
+
     const alpha = $("alpha"); alpha.textContent = "";
-    "abcdefghijklmnopqrstuvwxyz".split("").forEach((l) => {
-      const a = el("a", null, d.kw + " " + l); a.href = gUrl(d.kw + " " + l); a.target = "_blank"; a.rel = "noopener noreferrer"; alpha.appendChild(a);
-    });
+    if (d.alphabet.length) {
+      d.alphabet.forEach((g) => {
+        const box = el("div", "letter"); const h = el("h3");
+        h.appendChild(el("span", null, d.kw + " " + g.letter)); h.appendChild(el("span", "count", String(g.items.length)));
+        box.appendChild(h);
+        if (g.items.length) { const ul = el("ul"); g.items.forEach((q) => { const li = el("li"); const a = el("a", null, q); a.href = gUrl(q); a.target = "_blank"; a.rel = "noopener noreferrer"; li.appendChild(a); ul.appendChild(li); }); box.appendChild(ul); }
+        else box.appendChild(el("p", "empty", "Aucune suggestion."));
+        alpha.appendChild(box);
+      });
+    } else {
+      "abcdefghijklmnopqrstuvwxyz".split("").forEach((l) => {
+        const box = el("div", "letter"); const a = el("a", null, d.kw + " " + l + " : ouvrir dans Google"); a.href = gUrl(d.kw + " " + l); a.target = "_blank"; a.rel = "noopener noreferrer"; box.appendChild(a); alpha.appendChild(box);
+      });
+    }
+
+    $("sec-yt").style.display = d.youtube.length ? "" : "none";
+    if (d.youtube.length) $("g-yt").replaceWith(groupCard("Recherches YouTube", "#e76f51", d.youtube, "g-yt", true, ytUrl, "YouTube"));
+
+    const cpf = $("cpf"); cpf.textContent = "";
+    if (d.cpf && typeof d.cpf.total === "number") {
+      const wrap = el("div", "cpf");
+      const big = el("div", "bignum"); big.appendChild(el("strong", null, d.cpf.total.toLocaleString("fr-FR")));
+      big.appendChild(el("span", null, (d.cpf.total > 1 ? "offres de formation CPF" : "offre de formation CPF") + " liées à « " + d.kw + " »"));
+      wrap.appendChild(big);
+      const ul = el("ul", "cpflist");
+      (d.cpf.items || []).forEach((it) => {
+        const li = el("li"); li.appendChild(el("span", null, String(it.titre)));
+        const meta = [it.organisme, it.ville].filter(Boolean).join(" · ");
+        if (meta) li.appendChild(el("small", null, meta));
+        ul.appendChild(li);
+      });
+      if (!ul.children.length) ul.appendChild(el("li", "empty", "Aucune formation trouvée pour ce mot-clé."));
+      wrap.appendChild(ul); cpf.appendChild(wrap);
+      cpf.appendChild(el("p", "srcnote", "Source : catalogue Mon Compte Formation, open data de la Caisse des Dépôts."));
+    } else {
+      const p = el("p", "empty", "Le catalogue CPF n’est pas accessible ici. ");
+      const a = el("a", null, "Chercher sur Mon Compte Formation"); a.href = "https://www.moncompteformation.gouv.fr/espace-prive/html/#/formation/recherche?q=" + encodeURIComponent(d.kw); a.target = "_blank"; a.rel = "noopener noreferrer"; a.style.color = "var(--teal)";
+      p.appendChild(a); cpf.appendChild(p);
+    }
+
+    const s = $("socials"); s.textContent = ""; const k = encodeURIComponent(d.kw);
+    [["Instagram", "https://www.instagram.com/explore/search/keyword/?q=" + k],
+     ["TikTok", "https://www.tiktok.com/search?q=" + k],
+     ["LinkedIn", "https://www.linkedin.com/search/results/content/?keywords=" + k],
+     ["Facebook", "https://www.facebook.com/search/top?q=" + k],
+     ["Pinterest", "https://www.pinterest.fr/search/pins/?q=" + k],
+     ["YouTube", "https://www.youtube.com/results?search_query=" + k],
+     ["Google Trends", "https://trends.google.fr/trends/explore?geo=FR&q=" + k],
+     ["Pubs Meta", "https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=FR&q=" + k + "&search_type=keyword_unordered"]
+    ].forEach(([name, url]) => { const a = el("a", null, name); a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer"; s.appendChild(a); });
+
     drawWheel(d.kw, d.questions);
     $("results").scrollIntoView({ behavior: smooth(), block: "start" });
   }
@@ -298,13 +413,13 @@ ul.kw li:first-child { border-top: 0; }
   function drawWheel(kw, qs) {
     const svg = $("wheel"); const NS = "http://www.w3.org/2000/svg"; svg.textContent = "";
     const cx = 200, cy = 200, r0 = 92, r1 = 188, n = qs.length, gap = 0.012;
-    const mk = (t, a) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); return e; };
+    const mk = (t, a) => { const e = document.createElementNS(NS, t); for (const key in a) e.setAttribute(key, a[key]); return e; };
     qs.forEach((g, i) => {
       const a0 = (i / n) * Math.PI * 2 - Math.PI / 2 + gap, a1 = ((i + 1) / n) * Math.PI * 2 - Math.PI / 2 - gap;
       const p = (r, a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
       const [x0, y0] = p(r1, a0), [x1, y1] = p(r1, a1), [x2, y2] = p(r0, a1), [x3, y3] = p(r0, a0);
       const d = "M" + x0 + " " + y0 + " A" + r1 + " " + r1 + " 0 0 1 " + x1 + " " + y1 + " L" + x2 + " " + y2 + " A" + r0 + " " + r0 + " 0 0 0 " + x3 + " " + y3 + " Z";
-      const grp = mk("g", { class: "seg", tabindex: "0", role: "button", "aria-label": cap(g.mot) + " : " + g.items.length + " questions" });
+      const grp = mk("g", { class: "seg", tabindex: "0", role: "button", "aria-label": cap(g.mot) + " : " + g.items.length + " recherches" });
       grp.appendChild(mk("path", { d, fill: COLORS[i] }));
       const am = (a0 + a1) / 2, [tx, ty] = p((r0 + r1) / 2, am);
       const t1 = mk("text", { x: tx, y: ty - 4, "text-anchor": "middle", fill: TEXT_ON[i], "font-family": "Bricolage Grotesque, Figtree, sans-serif", "font-weight": "700", "font-size": g.mot.length > 8 ? "13" : "16" });
@@ -321,7 +436,6 @@ ul.kw li:first-child { border-top: 0; }
     const label = mk("text", { x: cx, y: cy + 7, "text-anchor": "middle", fill: "var(--text)", "font-family": "Bricolage Grotesque, Figtree, sans-serif", "font-weight": "800", "font-size": kw.length > 14 ? "15" : kw.length > 9 ? "19" : "24" });
     label.textContent = kw.length > 22 ? kw.slice(0, 21) + "…" : kw;
     svg.appendChild(label);
-    svg.setAttribute("aria-label", "Roue des questions autour de " + kw);
   }
   function focusGroup(i) {
     document.querySelectorAll(".seg").forEach((s, k) => s.classList.toggle("dim", k !== i));
@@ -333,15 +447,26 @@ ul.kw li:first-child { border-top: 0; }
   $("copyAll").addEventListener("click", (e) => {
     if (!current) return;
     const d = current; const lines = ["Recherches autour de « " + d.kw + " »", ""];
-    d.questions.forEach((g) => { lines.push(cap(g.mot) + "…"); g.items.forEach((q) => lines.push("- " + q)); lines.push(""); });
-    lines.push("Avec des précisions"); d.prep.forEach((q) => lines.push("- " + q)); lines.push("");
-    lines.push("Comparaisons"); d.comp.forEach((q) => lines.push("- " + q));
-    if (d.ai) {
-      lines.push("", "Questions proposées par Claude"); d.ai.questions.forEach((q) => lines.push("- " + q));
-      lines.push("", "Idées pour les réseaux sociaux"); d.ai.reseaux.forEach((x) => lines.push("- " + x.titre + (x.format ? " (" + x.format + ")" : "")));
-      lines.push("", "Idées pour le blog"); d.ai.blog.forEach((x) => lines.push("- " + x));
-    }
+    d.questions.forEach((g) => { if (g.items.length) { lines.push(cap(g.mot) + "…"); g.items.forEach((q) => lines.push("- " + q)); lines.push(""); } });
+    if (d.prep.length) { lines.push("Avec des prépositions"); d.prep.forEach((q) => lines.push("- " + q)); lines.push(""); }
+    if (d.comp.length) { lines.push("Comparaisons"); d.comp.forEach((q) => lines.push("- " + q)); lines.push(""); }
+    d.alphabet.forEach((g) => { if (g.items.length) { lines.push(d.kw + " " + g.letter); g.items.forEach((q) => lines.push("- " + q)); lines.push(""); } });
+    if (d.youtube.length) { lines.push("YouTube"); d.youtube.forEach((q) => lines.push("- " + q)); lines.push(""); }
+    if (d.cpf && typeof d.cpf.total === "number") { lines.push("Catalogue CPF : " + d.cpf.total + " offres"); (d.cpf.items || []).forEach((it) => lines.push("- " + it.titre)); }
     copyText(lines.join("\n"), e.currentTarget);
+  });
+
+  $("promptCopy").addEventListener("click", (e) => {
+    const kw = current ? current.kw : kwIn.value.trim();
+    const act = $("act").value.trim();
+    try { localStorage.setItem("mc-act", act); } catch (e2) {}
+    let txt = "Je dirige un organisme de formation" + (act ? " : " + act : "") + ". Mon mot-clé : « " + (kw || "[votre mot-clé]") + " ».";
+    if (current && current.live) {
+      const sample = current.questions.flatMap((g) => g.items).slice(0, 25);
+      if (sample.length) txt += " Voici de vraies recherches Google autour de ce mot : " + sample.join(" ; ") + ".";
+    }
+    txt += " À partir de ces recherches, donne-moi 6 idées de posts pour les réseaux sociaux avec le format conseillé (carrousel, reel, post, story ou vidéo), et 6 titres d’articles de blog qui reprennent une vraie question de recherche.";
+    copyText(txt, e.currentTarget);
   });
 
   const ERR = {
@@ -353,37 +478,33 @@ ul.kw li:first-child { border-top: 0; }
   const strArr = (a, max) => (Array.isArray(a) ? a.filter((x) => typeof x === "string" && x.trim()).map((x) => x.trim()).slice(0, max) : []);
 
   $("aiGo").addEventListener("click", async () => {
-    if (!sample || !current) return;
+    if (!sample || !current) { $("aiStatus").textContent = "Lancez d’abord une recherche avec votre mot-clé."; return; }
     const btn = $("aiGo"), st = $("aiStatus"), act = $("act").value.trim();
     try { localStorage.setItem("mc-act", act); } catch (e) {}
     btn.disabled = true; st.className = "status"; st.textContent = "Claude prépare vos idées autour de « " + current.kw + " »…";
+    const real = current.questions.flatMap((g) => g.items).slice(0, 30);
     const prompt = [
       "Tu aides un organisme de formation à trouver des idées de contenus.",
       "Mot-clé : \"" + current.kw + "\".",
       act ? "Son activité : " + act + "." : "",
+      real.length ? "Recherches Google réelles autour de ce mot : " + real.join(" ; ") + "." : "",
       "Réponds uniquement avec un objet JSON valide, sans texte autour, au format :",
-      "{\"questions\":[\"...\"],\"reseaux\":[{\"titre\":\"...\",\"format\":\"carrousel\"}],\"blog\":[\"...\"]}",
-      "- \"questions\" : 10 questions réalistes que des internautes français posent sur Google autour de ce mot-clé, terminées par un point d’interrogation.",
+      "{\"reseaux\":[{\"titre\":\"...\",\"format\":\"carrousel\"}],\"blog\":[\"...\"]}",
       "- \"reseaux\" : 6 idées de posts avec un \"titre\" accrocheur et un \"format\" parmi : carrousel, reel, post, story, vidéo.",
       "- \"blog\" : 6 titres d’articles de blog qui reprennent une vraie question de recherche.",
       "- Utilise l’apostrophe typographique ’."
     ].filter(Boolean).join("\n");
     try {
       const d = await sample.json(prompt, { modelTier: "quick" });
-      const ai = {
-        questions: strArr(d && d.questions, 12),
-        reseaux: Array.isArray(d && d.reseaux) ? d.reseaux.filter((x) => x && typeof x.titre === "string").slice(0, 8).map((x) => ({ titre: x.titre.trim(), format: typeof x.format === "string" ? x.format.trim() : "" })) : [],
-        blog: strArr(d && d.blog, 8),
-      };
-      if (!ai.questions.length && !ai.reseaux.length) throw { code: "invalid_json" };
-      current.ai = ai;
-      $("ai-q").replaceWith(groupCard("Questions proposées par Claude", "#2a9d8f", ai.questions, "ai-q"));
+      const reseaux = Array.isArray(d && d.reseaux) ? d.reseaux.filter((x) => x && typeof x.titre === "string").slice(0, 8).map((x) => ({ titre: x.titre.trim(), format: typeof x.format === "string" ? x.format.trim() : "" })) : [];
+      const blog = strArr(d && d.blog, 8);
+      if (!reseaux.length && !blog.length) throw { code: "invalid_json" };
       const s = $("i-social"); s.textContent = "";
-      ai.reseaux.forEach((x) => { const li = el("li", "idea"); li.appendChild(el("span", null, x.titre)); if (x.format) li.appendChild(el("span", "tag", x.format)); s.appendChild(li); });
+      reseaux.forEach((x) => { const li = el("li", "idea"); li.appendChild(el("span", null, x.titre)); if (x.format) li.appendChild(el("span", "tag", x.format)); s.appendChild(li); });
       const b = $("i-blog"); b.textContent = "";
-      ai.blog.forEach((x) => { const li = el("li", "idea"); li.appendChild(el("span", null, x)); b.appendChild(li); });
+      blog.forEach((x) => { const li = el("li", "idea"); li.appendChild(el("span", null, x)); b.appendChild(li); });
       $("aiOut").classList.add("on");
-      st.textContent = "Idées prêtes. Vérifiez les plus prometteuses dans Google avant d’écrire.";
+      st.textContent = "Idées prêtes.";
     } catch (err) {
       st.className = "status err";
       st.textContent = ERR[err && err.code] || "La génération n’a pas abouti. Relancez dans un instant.";
