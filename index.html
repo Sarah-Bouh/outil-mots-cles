@@ -378,6 +378,13 @@ ul.kw li:first-child { border-top: 0; }
       const wrap = el("div", "cpf");
       const big = el("div", "bignum"); big.appendChild(el("strong", null, d.cpf.total.toLocaleString("fr-FR")));
       big.appendChild(el("span", null, (d.cpf.total > 1 ? "résultats" : "résultat") + " dans le catalogue CPF pour « " + d.kw + " »"));
+      if (d.cpf.prixMoyen || d.cpf.heuresMoyennes) {
+        const bits = [];
+        if (d.cpf.prixMoyen) bits.push("Prix moyen : " + d.cpf.prixMoyen.toLocaleString("fr-FR") + " €");
+        if (d.cpf.heuresMoyennes) bits.push("Durée moyenne : " + d.cpf.heuresMoyennes + " h");
+        const extra = el("span", null, bits.join(" · ")); extra.style.marginTop = "14px"; extra.style.fontWeight = "600";
+        big.appendChild(extra);
+      }
       wrap.appendChild(big);
       const ul = el("ul", "cpflist");
       (d.cpf.items || []).forEach((it) => {
@@ -388,7 +395,7 @@ ul.kw li:first-child { border-top: 0; }
         link.style.color = "var(--text)"; link.style.fontWeight = "600";
         link.title = it.lien ? "Ouvrir la fiche sur Mon Compte Formation" : "Rechercher cette formation";
         li.appendChild(link);
-        const meta = [it.organisme, it.ville].filter(Boolean).join(" · ");
+        const meta = [it.organisme, it.ville, it.prix ? "≈ " + Math.round(it.prix).toLocaleString("fr-FR") + " €" : null, it.heures ? Math.round(it.heures) + " h" : null, it.distance ? "à distance possible" : null].filter(Boolean).join(" · ");
         if (meta) li.appendChild(el("small", null, meta));
         ul.appendChild(li);
       });
