@@ -29,23 +29,25 @@ function pick(obj, patterns) {
 const FICHE = "https://www.moncompteformation.gouv.fr/espace-prive/html/#/formation/recherche/";
 
 function toItem(f) {
+  const num = (v) => (v == null || v === "" || isNaN(Number(v)) ? null : Number(v));
   const item = {
-    titre: pick(f, [/^intitule_formation$/, /intitule.*formation/, /intitule/]),
-    organisme: pick(f, [/^nom_of$/, /nom.*of/, /organisme/, /raison_sociale/]),
-    certification: pick(f, [/intitule.*certif/, /libelle.*certif/, /certif/]),
-    ville: pick(f, [/ville/, /commune/, /nom_departement/, /departement/]),
+    titre: pick(f, [/^intitule_formation$/]),
+    organisme: pick(f, [/^nom_of$/]),
+    certification: pick(f, [/^intitule_certification$/]),
+    ville: pick(f, [/^nom_departement$/, /^nom_region$/]),
+    prix: num(pick(f, [/^frais_ttc_tot_mean$/])),
+    heures: num(pick(f, [/^nombre_heures_total_mean$/])),
+    distance: (num(pick(f, [/^nb_session_a_distance$/])) || 0) > 0,
     lien: null,
   };
-  // Lien direct vers la fiche : SIRET + identifiant de formation + identifiant d'action
-  const url = pick(f, [/url/, /lien/]);
-  if (typeof url === "string" && /^https?:\/\//.test(url)) { item.lien = url; return item; }
-  const siret = pick(f, [/^siret$/, /siret/]);
-  const idf = pick(f, [/^numero_formation$/, /numero.*formation/, /^id_formation/, /identifiant.*formation/]);
-  const ida = pick(f, [/^numero_action$/, /numero.*action/, /^id_action/, /identifiant.*action/]);
-  if (siret && idf && ida) {
+  // Lien vers la fiche : SIRET + identifiant de formation (le catalogue ne fournit pas l'identifiant d'action,
+  // on reprend celui de la formation, comme dans les liens publiés par de nombreux organismes)
+  const siret = pick(f, [/^siret$/]);
+  const idf = pick(f, [/^numero_formation$/]);
+  if (siret && idf) {
     const s = String(siret).replace(/\D/g, "");
-    const withSiret = (id) => (String(id).startsWith(s + "_") ? String(id) : s + "_" + id);
-    item.lien = FICHE + withSiret(idf) + "/" + withSiret(ida);
+    const id = String(idf).startsWith(s + "_") ? String(idf) : s + "_" + idf;
+    item.lien = FICHE + id + "/" + id;
   }
   return item;
 }
@@ -87,9 +89,12 @@ module.exports = async (req, res) => {
     return true;
   }).slice(0, 10);
   const organismes = new Set(records.map((r) => String(r.organisme || "").toLowerCase()).filter(Boolean)).size;
+  const avg = (arr) => (arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null);
+  const prixMoyen = avg(records.map((r) => r.prix).filter((v) => v != null && v > 0));
+  const heuresMoyennes = avg(records.map((r) => r.heures).filter((v) => v != null && v > 0));
 
   res.setHeader("Cache-Control", "s-maxage=43200, stale-while-revalidate=604800");
-  const out = { keyword: q, total, items, organismes };
+  const out = { keyword: q, total, items, organismes, prixMoyen, heuresMoyennes };
   // Diagnostic : /api/cpf?q=photographie&debug=1 affiche les colonnes du catalogue
   if (req.query && req.query.debug) out.colonnes = raw ? Object.keys(raw) : [];
   res.status(200).json(out);
