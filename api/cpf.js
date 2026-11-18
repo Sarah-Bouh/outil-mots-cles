@@ -89,7 +89,7 @@ module.exports = async (req, res) => {
     return true;
   }).slice(0, 10);
   const organismes = new Set(records.map((r) => String(r.organisme || "").toLowerCase()).filter(Boolean)).size;
-  const avg = (arr) => { if (!arr.length) return null; const s = [...arr].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return Math.round(s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2); };  const prixMoyen = avg(records.map((r) => r.prix).filter((v) => v != null && v > 0));
+    const avg = (arr) => { if (!arr.length) return null; const s = [...arr].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return Math.round(s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2); };
   const heuresMoyennes = avg(records.map((r) => r.heures).filter((v) => v != null && v > 0));
 
   res.setHeader("Cache-Control", "s-maxage=43200, stale-while-revalidate=604800");
