@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trouver des mots-clés</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #264653; --teal: #2a9d8f; --sun: #e9c46a; --sand: #f4a261; --coral: #e76f51;
+  --bg: #f2f6f6; --surface: #ffffff; --muted: #5b7480; --line: #d7e3e3; --chip: #e6eff0;
+  --text: #264653; --on-accent: #ffffff;
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12222a; --surface: #1a2f37; --muted: #9db4bb; --line: #2c4650; --chip: #223b44;
+    --text: #e6f0f0; --ink: #e6f0f0; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12222a; --surface: #1a2f37; --muted: #9db4bb; --line: #2c4650; --chip: #223b44;
+  --text: #e6f0f0; --ink: #e6f0f0; color-scheme: dark;
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 16px; line-height: 1.5;
+}
+.wrap { max-width: 1120px; margin: 0 auto; padding: 40px 24px 64px; }
+h1, h2, h3 { font-family: "Bricolage Grotesque", "Figtree", system-ui, sans-serif; margin: 0; line-height: 1.1; }
+h1 { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 800; letter-spacing: -0.02em; max-width: 16ch; }
+.lead { color: var(--muted); max-width: 60ch; margin: 12px 0 28px; font-size: 1.05rem; }
+
+.search {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 20px;
+  padding: 18px; display: grid; gap: 12px;
+}
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.field { flex: 1 1 260px; display: grid; gap: 6px; }
+.field label { font-weight: 600; font-size: 0.92rem; }
+.field small { color: var(--muted); font-weight: 400; }
+input[type="text"] {
+  width: 100%; font: inherit; color: var(--text); background: var(--bg);
+  border: 2px solid var(--line); border-radius: 14px; padding: 14px 16px; font-size: 1.1rem;
+}
+input[type="text"]:focus { outline: none; border-color: var(--teal); }
+#kw { font-family: "Bricolage Grotesque", "Figtree", sans-serif; font-size: 1.35rem; font-weight: 700; }
+button { font: inherit; cursor: pointer; }
+.go {
+  align-self: end; background: var(--coral); color: var(--on-accent); border: 0;
+  border-radius: 14px; padding: 16px 26px; font-weight: 700; font-size: 1.05rem;
+  font-family: "Bricolage Grotesque", "Figtree", sans-serif; min-height: 56px;
+}
+.go:disabled { opacity: 0.6; cursor: wait; }
+.go:focus-visible, .chip:focus-visible, .copy:focus-visible, .seg:focus-visible, .ghost:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+.tries { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; color: var(--muted); font-size: 0.92rem; }
+.chip {
+  background: var(--chip); color: var(--text); border: 0; border-radius: 999px; padding: 6px 14px; font-size: 0.92rem;
+}
+.note { color: var(--muted); font-size: 0.88rem; margin: 0; }
+
+.status { margin: 28px 0 0; min-height: 1.5em; font-weight: 600; }
+.status.err { color: var(--coral); }
+
+#results { display: none; margin-top: 32px; }
+#results.on { display: block; }
+.top { display: grid; grid-template-columns: minmax(280px, 420px) 1fr; gap: 28px; align-items: start; }
+@media (max-width: 820px) { .top { grid-template-columns: 1fr; } }
+.wheel-box { background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 12px; position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); }
+@media (max-width: 820px) { .wheel-box { position: static; } }
+.wheel-box svg { width: 100%; height: auto; display: block; }
+.seg { cursor: pointer; }
+.seg path { transition: opacity .15s; }
+.seg.dim path { opacity: 0.25; }
+.wheel-hint { text-align: center; color: var(--muted); font-size: 0.85rem; margin: 4px 0 6px; }
+
+.groups { display: grid; gap: 14px; }
+.group { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px; }
+.group.hl { border-color: var(--teal); box-shadow: 0 0 0 2px var(--teal); }
+.ghead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.ghead h3 { font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex: none; }
+.count { color: var(--muted); font-size: 0.85rem; }
+ul.kw { list-style: none; margin: 0; padding: 0; display: grid; }
+ul.kw li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+ul.kw li:first-child { border-top: 0; }
+.copy { background: transparent; border: 1px solid var(--line); color: var(--muted); border-radius: 10px; padding: 4px 10px; font-size: 0.82rem; flex: none; }
+.copy.done { background: var(--teal); border-color: var(--teal); color: var(--on-accent); }
+
+.section { margin-top: 44px; }
+.section > h2 { font-size: clamp(1.5rem, 3vw, 2.1rem); font-weight: 800; letter-spacing: -0.01em; }
+.section > p { color: var(--muted); margin: 6px 0 18px; max-width: 60ch; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 720px) { .two { grid-template-columns: 1fr; } }
+.ideas { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.idea { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.tag { background: var(--sun); color: #264653; border-radius: 999px; padding: 2px 10px; font-size: 0.78rem; font-weight: 600; flex: none; }
+.col h3 { font-size: 1.2rem; margin-bottom: 10px; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
+.ghost { background: var(--surface); color: var(--text); border: 2px solid var(--line); border-radius: 12px; padding: 10px 16px; font-weight: 600; }
+.unavailable { display: none; margin-top: 18px; padding: 14px 16px; border-radius: 14px; background: var(--chip); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+.links { display: flex; gap: 6px; flex: none; }
+.gl { border: 1px solid var(--line); color: var(--teal); border-radius: 10px; padding: 4px 10px; font-size: 0.82rem; text-decoration: none; font-weight: 600; }
+.gl:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+.alpha { display: flex; flex-wrap: wrap; gap: 8px; }
+.alpha a { background: var(--surface); border: 1px solid var(--line); color: var(--text); text-decoration: none; border-radius: 10px; padding: 8px 12px; font-size: 0.92rem; }
+.alpha a:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+.ai { margin-top: 44px; background: var(--surface); border: 2px solid var(--teal); border-radius: 24px; padding: 22px; }
+.ai h2 { font-size: clamp(1.4rem, 3vw, 1.9rem); font-weight: 800; }
+.ai > p { color: var(--muted); margin: 6px 0 16px; max-width: 62ch; }
+.ai .go { background: var(--teal); }
+.ai-off { color: var(--muted); font-size: 0.95rem; margin: 0; }
+#aiOut { display: none; margin-top: 20px; }
+#aiOut.on { display: block; }
+#aiOut .two { margin-top: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Trouvez ce que les gens cherchent</h1>
+  <p class="lead">Tapez un mot de votre métier : l’outil liste les recherches que les internautes font le plus souvent autour de ce mot. Chaque recherche s’ouvre dans Google pour voir les vrais résultats et les « Autres questions ».</p>
+
+  <form class="search" id="form" autocomplete="off">
+    <div class="row">
+      <div class="field">
+        <label for="kw">Votre mot-clé</label>
+        <input type="text" id="kw" placeholder="photographie" required maxlength="60">
+      </div>
+      <button class="go" id="go" type="submit">Trouver les recherches</button>
+    </div>
+    <div class="tries">Essayez :
+      <button type="button" class="chip" data-kw="photographie">photographie</button>
+      <button type="button" class="chip" data-kw="jardinage">jardinage</button>
+      <button type="button" class="chip" data-kw="comptabilité">comptabilité</button>
+      <button type="button" class="chip" data-kw="prise de parole">prise de parole</button>
+    </div>
+  </form>
+
+  <p class="status" id="status" role="status" aria-live="polite"></p>
+
+  <div id="results">
+    <div class="top">
+      <div class="wheel-box">
+        <svg id="wheel" viewBox="0 0 400 400" role="img" aria-label="Roue des questions"></svg>
+        <p class="wheel-hint">Touchez un mot pour voir ses questions</p>
+      </div>
+      <div class="groups" id="groups"></div>
+    </div>
+
+    <div class="section">
+      <h2>Autres recherches</h2>
+      <p>Des recherches plus précises, souvent plus faciles à viser pour un article de blog.</p>
+      <div class="two">
+        <div class="group" id="g-prep"></div>
+        <div class="group" id="g-comp"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>L’alphabet de Google</h2>
+      <p>Comme AnswerThePublic : ouvrez votre mot suivi d’une lettre dans Google, et regardez les suggestions et les « Autres questions » qui apparaissent.</p>
+      <div class="alpha" id="alpha"></div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="ghost" id="copyAll">Copier toute la liste</button>
+    </div>
+
+    <div class="ai" id="ai">
+      <h2>Aller plus loin avec Claude</h2>
+      <p>Obtenez des questions supplémentaires et des idées de posts et d’articles adaptées à votre activité.</p>
+      <div id="aiOn" style="display:none">
+        <div class="row">
+          <div class="field">
+            <label for="act">Votre activité <small>(facultatif)</small></label>
+            <input type="text" id="act" placeholder="Formation photo pour débutants, à Pau" maxlength="200">
+          </div>
+          <button class="go" id="aiGo" type="button">Générer des idées</button>
+        </div>
+        <p class="status" id="aiStatus" role="status" aria-live="polite"></p>
+        <div id="aiOut">
+          <div class="group" id="ai-q"></div>
+          <div class="two">
+            <div class="col"><h3>Pour les réseaux sociaux</h3><ul class="ideas" id="i-social"></ul></div>
+            <div class="col"><h3>Pour le blog</h3><ul class="ideas" id="i-blog"></ul></div>
+          </div>
+        </div>
+      </div>
+      <p class="ai-off" id="aiOff">Cette partie est disponible quand vous ouvrez l’outil depuis votre compte Claude. Le reste de l’outil fonctionne pour tout le monde.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const WORDS = ["comment", "pourquoi", "quel", "combien", "quand", "où", "qui", "est-ce que", "peut-on"];
+  const COLORS = ["#2a9d8f", "#e9c46a", "#f4a261", "#e76f51", "#264653", "#2a9d8f", "#e9c46a", "#f4a261", "#e76f51"];
+  const TEXT_ON = ["#ffffff", "#264653", "#264653", "#ffffff", "#ffffff", "#ffffff", "#264653", "#264653", "#ffffff"];
+  const T = {
+    "comment": ["comment débuter en {k}", "comment se former en {k}", "comment progresser en {k}", "comment trouver une formation en {k}", "comment financer une formation en {k}"],
+    "pourquoi": ["pourquoi se former en {k}", "pourquoi se reconvertir en {k}", "pourquoi apprendre {k} avec un professionnel", "pourquoi faire une formation certifiante en {k}"],
+    "quel": ["quelle formation en {k} choisir", "quel matériel pour débuter en {k}", "quels métiers en {k}", "quel diplôme pour travailler en {k}", "quelles compétences en {k}"],
+    "combien": ["combien coûte une formation en {k}", "combien de temps pour se former en {k}", "combien gagne un professionnel en {k}"],
+    "quand": ["quand commencer une formation en {k}", "quand se reconvertir en {k}", "quand s’inscrire à une formation en {k}"],
+    "où": ["où se former en {k}", "où trouver une formation en {k} près de chez moi", "où travailler en {k}"],
+    "qui": ["qui peut se former en {k}", "qui finance une formation en {k}", "qui recrute en {k}"],
+    "est-ce que": ["est-ce que le CPF finance une formation en {k}", "est-ce qu’une formation en {k} est reconnue", "est-ce qu’on peut apprendre {k} seul"],
+    "peut-on": ["peut-on se former en {k} à distance", "peut-on se reconvertir en {k}", "peut-on apprendre {k} à 40 ans", "peut-on vivre de {k}"],
+  };
+  const PREP = ["{k} pour débutant", "{k} pour les nuls", "{k} sans diplôme", "{k} avec le CPF", "{k} à distance", "{k} en ligne", "{k} près de chez moi", "{k} en alternance", "formation {k}", "{k} salaire", "{k} débouchés"];
+  const COMP = ["formation {k} en ligne ou en présentiel", "{k} : apprendre seul ou se former", "{k} : formation courte ou longue", "{k} : école ou organisme de formation", "{k} : CPF ou financement personnel"];
+
+  const $ = (id) => document.getElementById(id);
+  const form = $("form"), kwIn = $("kw"), status = $("status");
+  let current = null, sample = null;
+
+  try { const a = localStorage.getItem("mc-act"); if (a) $("act").value = a; } catch (e) {}
+
+  if (window.claude && typeof window.claude.use === "function") {
+    window.claude.use("sample").then((s) => { if (s) { sample = s; $("aiOn").style.display = "block"; $("aiOff").style.display = "none"; } }).catch(() => {});
+  }
+
+  document.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => { kwIn.value = c.dataset.kw; form.requestSubmit(); }));
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const kw = kwIn.value.trim().replace(/\s+/g, " ").toLowerCase();
+    if (!kw) return;
+    const fill = (t) => t.split("{k}").join(kw);
+    const questions = WORDS.map((w) => ({ mot: w, items: T[w].map(fill) }));
+    current = { kw, questions, prep: PREP.map(fill), comp: COMP.map(fill) };
+    render(current);
+    const n = questions.reduce((a, g) => a + g.items.length, 0) + current.prep.length + current.comp.length;
+    status.className = "status";
+    status.textContent = n + " recherches à explorer autour de « " + kw + " ».";
+    $("aiOut").classList.remove("on"); $("aiStatus").textContent = "";
+  });
+
+  function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+  const gUrl = (q) => "https://www.google.com/search?q=" + encodeURIComponent(q);
+
+  function copyText(txt, btn) {
+    const ok = () => { if (!btn) return; const prev = btn.textContent; btn.textContent = "Copié"; btn.classList.add("done"); setTimeout(() => { btn.textContent = prev; btn.classList.remove("done"); }, 1400); };
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(txt).then(ok, () => { if (fallback(txt)) ok(); }); return; } } catch (e) {}
+    if (fallback(txt)) ok();
+  }
+  function fallback(txt) {
+    try { const t = document.createElement("textarea"); t.value = txt; t.style.position = "fixed"; t.style.opacity = "0"; document.body.appendChild(t); t.select(); const r = document.execCommand("copy"); t.remove(); return r; } catch (e) { return false; }
+  }
+
+  function list(items) {
+    const ul = el("ul", "kw");
+    items.forEach((q) => {
+      const li = el("li"); li.appendChild(el("span", null, q));
+      const box = el("span", "links");
+      const a = el("a", "gl", "Google"); a.href = gUrl(q); a.target = "_blank"; a.rel = "noopener noreferrer"; a.setAttribute("aria-label", "Voir dans Google : " + q);
+      const b = el("button", "copy", "Copier"); b.type = "button"; b.setAttribute("aria-label", "Copier : " + q);
+      b.addEventListener("click", () => copyText(q, b));
+      box.appendChild(a); box.appendChild(b); li.appendChild(box); ul.appendChild(li);
+    });
+    return ul;
+  }
+  function groupCard(title, color, items, id) {
+    const card = el("div", "group"); if (id) card.id = id;
+    const head = el("div", "ghead"); const h = el("h3");
+    const dot = el("span", "dot"); dot.style.background = color; h.appendChild(dot); h.appendChild(document.createTextNode(title));
+    head.appendChild(h); head.appendChild(el("span", "count", items.length + (items.length > 1 ? " recherches" : " recherche")));
+    card.appendChild(head); card.appendChild(list(items));
+    return card;
+  }
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const smooth = () => (matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
+
+  function render(d) {
+    $("results").classList.add("on");
+    const groups = $("groups"); groups.textContent = "";
+    d.questions.forEach((g, i) => groups.appendChild(groupCard(cap(g.mot) + "…", COLORS[i], g.items, "grp-" + i)));
+    $("g-prep").replaceWith(groupCard("Avec des précisions", "#2a9d8f", d.prep, "g-prep"));
+    $("g-comp").replaceWith(groupCard("Comparaisons", "#e76f51", d.comp, "g-comp"));
+    const alpha = $("alpha"); alpha.textContent = "";
+    "abcdefghijklmnopqrstuvwxyz".split("").forEach((l) => {
+      const a = el("a", null, d.kw + " " + l); a.href = gUrl(d.kw + " " + l); a.target = "_blank"; a.rel = "noopener noreferrer"; alpha.appendChild(a);
+    });
+    drawWheel(d.kw, d.questions);
+    $("results").scrollIntoView({ behavior: smooth(), block: "start" });
+  }
+
+  function drawWheel(kw, qs) {
+    const svg = $("wheel"); const NS = "http://www.w3.org/2000/svg"; svg.textContent = "";
+    const cx = 200, cy = 200, r0 = 92, r1 = 188, n = qs.length, gap = 0.012;
+    const mk = (t, a) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); return e; };
+    qs.forEach((g, i) => {
+      const a0 = (i / n) * Math.PI * 2 - Math.PI / 2 + gap, a1 = ((i + 1) / n) * Math.PI * 2 - Math.PI / 2 - gap;
+      const p = (r, a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+      const [x0, y0] = p(r1, a0), [x1, y1] = p(r1, a1), [x2, y2] = p(r0, a1), [x3, y3] = p(r0, a0);
+      const d = "M" + x0 + " " + y0 + " A" + r1 + " " + r1 + " 0 0 1 " + x1 + " " + y1 + " L" + x2 + " " + y2 + " A" + r0 + " " + r0 + " 0 0 0 " + x3 + " " + y3 + " Z";
+      const grp = mk("g", { class: "seg", tabindex: "0", role: "button", "aria-label": cap(g.mot) + " : " + g.items.length + " questions" });
+      grp.appendChild(mk("path", { d, fill: COLORS[i] }));
+      const am = (a0 + a1) / 2, [tx, ty] = p((r0 + r1) / 2, am);
+      const t1 = mk("text", { x: tx, y: ty - 4, "text-anchor": "middle", fill: TEXT_ON[i], "font-family": "Bricolage Grotesque, Figtree, sans-serif", "font-weight": "700", "font-size": g.mot.length > 8 ? "13" : "16" });
+      t1.textContent = g.mot;
+      const t2 = mk("text", { x: tx, y: ty + 15, "text-anchor": "middle", fill: TEXT_ON[i], "font-family": "Figtree, sans-serif", "font-size": "13" });
+      t2.textContent = g.items.length;
+      grp.appendChild(t1); grp.appendChild(t2);
+      const act = () => focusGroup(i);
+      grp.addEventListener("click", act);
+      grp.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); act(); } });
+      svg.appendChild(grp);
+    });
+    svg.appendChild(mk("circle", { cx, cy, r: r0 - 8, fill: "var(--surface)", stroke: "var(--line)", "stroke-width": "2" }));
+    const label = mk("text", { x: cx, y: cy + 7, "text-anchor": "middle", fill: "var(--text)", "font-family": "Bricolage Grotesque, Figtree, sans-serif", "font-weight": "800", "font-size": kw.length > 14 ? "15" : kw.length > 9 ? "19" : "24" });
+    label.textContent = kw.length > 22 ? kw.slice(0, 21) + "…" : kw;
+    svg.appendChild(label);
+    svg.setAttribute("aria-label", "Roue des questions autour de " + kw);
+  }
+  function focusGroup(i) {
+    document.querySelectorAll(".seg").forEach((s, k) => s.classList.toggle("dim", k !== i));
+    document.querySelectorAll(".group").forEach((g) => g.classList.remove("hl"));
+    const card = $("grp-" + i);
+    if (card) { card.classList.add("hl"); card.scrollIntoView({ behavior: smooth(), block: "center" }); }
+  }
+
+  $("copyAll").addEventListener("click", (e) => {
+    if (!current) return;
+    const d = current; const lines = ["Recherches autour de « " + d.kw + " »", ""];
+    d.questions.forEach((g) => { lines.push(cap(g.mot) + "…"); g.items.forEach((q) => lines.push("- " + q)); lines.push(""); });
+    lines.push("Avec des précisions"); d.prep.forEach((q) => lines.push("- " + q)); lines.push("");
+    lines.push("Comparaisons"); d.comp.forEach((q) => lines.push("- " + q));
+    if (d.ai) {
+      lines.push("", "Questions proposées par Claude"); d.ai.questions.forEach((q) => lines.push("- " + q));
+      lines.push("", "Idées pour les réseaux sociaux"); d.ai.reseaux.forEach((x) => lines.push("- " + x.titre + (x.format ? " (" + x.format + ")" : "")));
+      lines.push("", "Idées pour le blog"); d.ai.blog.forEach((x) => lines.push("- " + x));
+    }
+    copyText(lines.join("\n"), e.currentTarget);
+  });
+
+  const ERR = {
+    not_granted: "Vous n’avez pas autorisé l’outil à utiliser Claude. Rechargez la page pour l’autoriser.",
+    rate_limited: "Trop de demandes d’un coup. Attendez quelques secondes puis relancez.",
+    invalid_json: "La réponse est arrivée incomplète. Relancez.",
+    session_expired: "Votre session a expiré. Rechargez la page.",
+  };
+  const strArr = (a, max) => (Array.isArray(a) ? a.filter((x) => typeof x === "string" && x.trim()).map((x) => x.trim()).slice(0, max) : []);
+
+  $("aiGo").addEventListener("click", async () => {
+    if (!sample || !current) return;
+    const btn = $("aiGo"), st = $("aiStatus"), act = $("act").value.trim();
+    try { localStorage.setItem("mc-act", act); } catch (e) {}
+    btn.disabled = true; st.className = "status"; st.textContent = "Claude prépare vos idées autour de « " + current.kw + " »…";
+    const prompt = [
+      "Tu aides un organisme de formation à trouver des idées de contenus.",
+      "Mot-clé : \"" + current.kw + "\".",
+      act ? "Son activité : " + act + "." : "",
+      "Réponds uniquement avec un objet JSON valide, sans texte autour, au format :",
+      "{\"questions\":[\"...\"],\"reseaux\":[{\"titre\":\"...\",\"format\":\"carrousel\"}],\"blog\":[\"...\"]}",
+      "- \"questions\" : 10 questions réalistes que des internautes français posent sur Google autour de ce mot-clé, terminées par un point d’interrogation.",
+      "- \"reseaux\" : 6 idées de posts avec un \"titre\" accrocheur et un \"format\" parmi : carrousel, reel, post, story, vidéo.",
+      "- \"blog\" : 6 titres d’articles de blog qui reprennent une vraie question de recherche.",
+      "- Utilise l’apostrophe typographique ’."
+    ].filter(Boolean).join("\n");
+    try {
+      const d = await sample.json(prompt, { modelTier: "quick" });
+      const ai = {
+        questions: strArr(d && d.questions, 12),
+        reseaux: Array.isArray(d && d.reseaux) ? d.reseaux.filter((x) => x && typeof x.titre === "string").slice(0, 8).map((x) => ({ titre: x.titre.trim(), format: typeof x.format === "string" ? x.format.trim() : "" })) : [],
+        blog: strArr(d && d.blog, 8),
+      };
+      if (!ai.questions.length && !ai.reseaux.length) throw { code: "invalid_json" };
+      current.ai = ai;
+      $("ai-q").replaceWith(groupCard("Questions proposées par Claude", "#2a9d8f", ai.questions, "ai-q"));
+      const s = $("i-social"); s.textContent = "";
+      ai.reseaux.forEach((x) => { const li = el("li", "idea"); li.appendChild(el("span", null, x.titre)); if (x.format) li.appendChild(el("span", "tag", x.format)); s.appendChild(li); });
+      const b = $("i-blog"); b.textContent = "";
+      ai.blog.forEach((x) => { const li = el("li", "idea"); li.appendChild(el("span", null, x)); b.appendChild(li); });
+      $("aiOut").classList.add("on");
+      st.textContent = "Idées prêtes. Vérifiez les plus prometteuses dans Google avant d’écrire.";
+    } catch (err) {
+      st.className = "status err";
+      st.textContent = ERR[err && err.code] || "La génération n’a pas abouti. Relancez dans un instant.";
+    } finally { btn.disabled = false; }
+  });
+})();
+</script>
+</body>
+</html>
