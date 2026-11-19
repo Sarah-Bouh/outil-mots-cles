@@ -319,8 +319,9 @@ ol.top10 li span.q { flex: 1; }
     current = data;
     render(data);
     const n = data.questions.reduce((a, g) => a + g.items.length, 0) + data.prep.length + data.comp.length + data.alphabet.reduce((a, g) => a + g.items.length, 0) + data.youtube.length;
+    const nq = data.questions.reduce((a, g) => a + g.items.length, 0);
     status.textContent = live
-      ? n + " vraies recherches trouvées autour de « " + kw + " »."
+      ? n + " vraies recherches trouvées autour de « " + kw + " »." + (nq < 15 ? " Peu de questions ? Essayez aussi un mot plus court ou plus courant, par exemple « " + kw.split(" ").sort((a, b) => b.length - a.length)[0] + " »." : "")
       : "Les données en direct ne sont pas disponibles ici : voici des pistes de recherche à vérifier dans Google.";
     busy = false; go.disabled = false;
   });
@@ -374,7 +375,12 @@ ol.top10 li span.q { flex: 1; }
       li.appendChild(a); li.appendChild(b); top.appendChild(li);
     });
     const groups = $("groups"); groups.textContent = "";
-    d.questions.forEach((g, i) => groups.appendChild(groupCard(cap(g.mot) + "…", COLORS[i], g.items, "grp-" + i, d.live)));
+    const shown = d.questions.map((g, i) => ({ mot: g.mot, items: g.items, idx: i })).filter((g) => g.items.length);
+    const empty = d.questions.filter((g) => !g.items.length).map((g) => g.mot);
+    shown.forEach((g) => groups.appendChild(groupCard(cap(g.mot) + "…", COLORS[g.idx], g.items, "grp-" + g.idx, d.live)));
+    if (empty.length) groups.appendChild(el("p", "empty", "Pas de suggestion Google pour : " + empty.join(", ") + "."));
+    if (!shown.length) groups.appendChild(el("p", "empty", "Google ne propose aucune question pour ce mot. Essayez un mot plus court ou plus courant."));
+    document.querySelector(".wheel-box").style.display = shown.length ? "" : "none";
     $("g-prep").replaceWith(groupCard("Avec des prépositions", "#2a9d8f", d.prep, "g-prep", d.live));
     $("g-comp").replaceWith(groupCard("Comparaisons", "#e76f51", d.comp, "g-comp", d.live));
 
@@ -446,7 +452,7 @@ ol.top10 li span.q { flex: 1; }
      ["Pubs Meta", "https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=FR&q=" + k + "&search_type=keyword_unordered"]
     ].forEach(([name, url]) => { const a = el("a", null, name); a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer"; s.appendChild(a); });
 
-    drawWheel(d.kw, d.questions);
+    drawWheel(d.kw, shown);
     $("results").scrollIntoView({ behavior: smooth(), block: "start" });
   }
 
@@ -460,14 +466,15 @@ ol.top10 li span.q { flex: 1; }
       const [x0, y0] = p(r1, a0), [x1, y1] = p(r1, a1), [x2, y2] = p(r0, a1), [x3, y3] = p(r0, a0);
       const d = "M" + x0 + " " + y0 + " A" + r1 + " " + r1 + " 0 0 1 " + x1 + " " + y1 + " L" + x2 + " " + y2 + " A" + r0 + " " + r0 + " 0 0 0 " + x3 + " " + y3 + " Z";
       const grp = mk("g", { class: "seg", tabindex: "0", role: "button", "aria-label": cap(g.mot) + " : " + g.items.length + " recherches" });
-      grp.appendChild(mk("path", { d, fill: COLORS[i] }));
+      grp.setAttribute("data-idx", g.idx);
+      grp.appendChild(mk("path", { d, fill: COLORS[g.idx] }));
       const am = (a0 + a1) / 2, [tx, ty] = p((r0 + r1) / 2, am);
-      const t1 = mk("text", { x: tx, y: ty - 4, "text-anchor": "middle", fill: TEXT_ON[i], "font-family": "Bricolage Grotesque, Figtree, sans-serif", "font-weight": "700", "font-size": g.mot.length > 8 ? "13" : "16" });
+      const t1 = mk("text", { x: tx, y: ty - 4, "text-anchor": "middle", fill: TEXT_ON[g.idx], "font-family": "Bricolage Grotesque, Figtree, sans-serif", "font-weight": "700", "font-size": g.mot.length > 8 ? "13" : "16" });
       t1.textContent = g.mot;
-      const t2 = mk("text", { x: tx, y: ty + 15, "text-anchor": "middle", fill: TEXT_ON[i], "font-family": "Figtree, sans-serif", "font-size": "13" });
+      const t2 = mk("text", { x: tx, y: ty + 15, "text-anchor": "middle", fill: TEXT_ON[g.idx], "font-family": "Figtree, sans-serif", "font-size": "13" });
       t2.textContent = g.items.length;
       grp.appendChild(t1); grp.appendChild(t2);
-      const act = () => focusGroup(i);
+      const act = () => focusGroup(g.idx);
       grp.addEventListener("click", act);
       grp.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); act(); } });
       svg.appendChild(grp);
@@ -478,7 +485,7 @@ ol.top10 li span.q { flex: 1; }
     svg.appendChild(label);
   }
   function focusGroup(i) {
-    document.querySelectorAll(".seg").forEach((s, k) => s.classList.toggle("dim", k !== i));
+    document.querySelectorAll(".seg").forEach((s) => s.classList.toggle("dim", Number(s.getAttribute("data-idx")) !== i));
     document.querySelectorAll(".group").forEach((g) => g.classList.remove("hl"));
     const card = $("grp-" + i);
     if (card) { card.classList.add("hl"); card.scrollIntoView({ behavior: smooth(), block: "center" }); }
