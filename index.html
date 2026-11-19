@@ -205,6 +205,15 @@ ol.top10 li span.q { flex: 1; }
       </div>
     </div>
 
+    <div class="section" id="sec-rel">
+      <h2>Recherches associées</h2>
+      <p>Les sujets voisins : ce que Google propose autour des recherches les plus populaires sur votre mot. Idéal pour élargir quand votre expression est très précise.</p>
+      <div class="two">
+        <div class="group" id="g-rel"></div>
+        <div class="group" id="g-broad"></div>
+      </div>
+    </div>
+
     <div class="section" id="sec-alpha">
       <h2>L’alphabet de Google</h2>
       <p>Ce que Google propose quand on tape votre mot suivi de chaque lettre.</p>
@@ -311,14 +320,14 @@ ol.top10 li span.q { flex: 1; }
       const norm = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
       const stems = norm(kw).split(/[^a-z0-9]+/).filter((w) => w.length >= 4).map((w) => w.slice(0, Math.min(6, w.length)));
       const relevant = (s) => !stems.length || stems.some((st) => norm(s).includes(st));
-      data = { kw, live, questions: sug.questions, prep: sug.prepositions || [], comp: sug.comparisons || [], alphabet: sug.alphabet || [], youtube: (sug.youtube || []).filter(relevant), base: sug.base || [], cpf };
+      data = { kw, live, questions: sug.questions, prep: sug.prepositions || [], comp: sug.comparisons || [], alphabet: sug.alphabet || [], youtube: (sug.youtube || []).filter(relevant), base: sug.base || [], related: sug.related || [], broad: sug.broad || null, cpf };
     } else {
       const fill = (t) => t.split("{k}").join(kw);
-      data = { kw, live, questions: WORDS.map((w) => ({ mot: w, items: T[w].map(fill) })), prep: PREP.map(fill), comp: COMP.map(fill), alphabet: [], youtube: [], base: [], cpf };
+      data = { kw, live, questions: WORDS.map((w) => ({ mot: w, items: T[w].map(fill) })), prep: PREP.map(fill), comp: COMP.map(fill), alphabet: [], youtube: [], base: [], related: [], broad: null, cpf };
     }
     current = data;
     render(data);
-    const n = data.questions.reduce((a, g) => a + g.items.length, 0) + data.prep.length + data.comp.length + data.alphabet.reduce((a, g) => a + g.items.length, 0) + data.youtube.length;
+    const n = data.questions.reduce((a, g) => a + g.items.length, 0) + data.prep.length + data.comp.length + data.alphabet.reduce((a, g) => a + g.items.length, 0) + data.youtube.length + data.related.length + (data.broad ? data.broad.items.length : 0);
     const nq = data.questions.reduce((a, g) => a + g.items.length, 0);
     status.textContent = live
       ? n + " vraies recherches trouvées autour de « " + kw + " »." + (nq < 15 ? " Peu de questions ? Essayez aussi un mot plus court ou plus courant, par exemple « " + kw.split(" ").sort((a, b) => b.length - a.length)[0] + " »." : "")
@@ -384,6 +393,14 @@ ol.top10 li span.q { flex: 1; }
     $("g-prep").replaceWith(groupCard("Avec des prépositions", "#2a9d8f", d.prep, "g-prep", d.live));
     $("g-comp").replaceWith(groupCard("Comparaisons", "#e76f51", d.comp, "g-comp", d.live));
 
+    const hasRel = d.related.length || (d.broad && d.broad.items.length);
+    $("sec-rel").style.display = hasRel ? "" : "none";
+    if (hasRel) {
+      $("g-rel").replaceWith(groupCard("Sujets voisins", "#264653", d.related.slice(0, 15), "g-rel", true));
+      const bTitle = d.broad ? "Autour de « " + d.broad.word + " »" : "Mot plus large";
+      $("g-broad").replaceWith(groupCard(bTitle, "#e9c46a", d.broad ? d.broad.items : [], "g-broad", true));
+      $("g-broad").style.display = d.broad && d.broad.items.length ? "" : "none";
+    }
     const alpha = $("alpha"); alpha.textContent = "";
     if (d.alphabet.length) {
       d.alphabet.forEach((g) => {
@@ -499,6 +516,8 @@ ol.top10 li span.q { flex: 1; }
     if (d.prep.length) { lines.push("Avec des prépositions"); d.prep.forEach((q) => lines.push("- " + q)); lines.push(""); }
     if (d.comp.length) { lines.push("Comparaisons"); d.comp.forEach((q) => lines.push("- " + q)); lines.push(""); }
     d.alphabet.forEach((g) => { if (g.items.length) { lines.push(d.kw + " " + g.letter); g.items.forEach((q) => lines.push("- " + q)); lines.push(""); } });
+    if (d.related.length) { lines.push("Recherches associées"); d.related.forEach((q) => lines.push("- " + q)); lines.push(""); }
+    if (d.broad && d.broad.items.length) { lines.push("Autour de « " + d.broad.word + " »"); d.broad.items.forEach((q) => lines.push("- " + q)); lines.push(""); }
     if (d.youtube.length) { lines.push("YouTube"); d.youtube.forEach((q) => lines.push("- " + q)); lines.push(""); }
     if (d.cpf && typeof d.cpf.total === "number") { lines.push("Catalogue CPF : " + d.cpf.total + " offres"); (d.cpf.items || []).forEach((it) => lines.push("- " + it.titre)); }
     copyText(lines.join("\n"), e.currentTarget);
