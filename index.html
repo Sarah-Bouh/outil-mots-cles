@@ -207,7 +207,7 @@ ol.top10 li span.q { flex: 1; }
 
     <div class="section" id="sec-rel">
       <h2>Recherches associées</h2>
-      <p>Les sujets voisins : ce que Google propose autour des recherches les plus populaires sur votre mot. Idéal pour élargir quand votre expression est très précise.</p>
+      <p>Les sujets voisins : l’outil repère les thèmes qui reviennent dans le top des recherches, puis interroge Google sur chacun. Idéal pour élargir quand votre expression est très précise.</p>
       <div class="two">
         <div class="group" id="g-rel"></div>
         <div class="group" id="g-broad"></div>
@@ -396,10 +396,11 @@ ol.top10 li span.q { flex: 1; }
     const hasRel = d.related.length || (d.broad && d.broad.items.length);
     $("sec-rel").style.display = hasRel ? "" : "none";
     if (hasRel) {
-      $("g-rel").replaceWith(groupCard("Sujets voisins", "#264653", d.related.slice(0, 15), "g-rel", true));
+      $("g-rel").replaceWith(groupCard("Sujets voisins", "#264653", d.related.slice(0, 24), "g-rel", true));
       const bTitle = d.broad ? "Autour de « " + d.broad.word + " »" : "Mot plus large";
       $("g-broad").replaceWith(groupCard(bTitle, "#e9c46a", d.broad ? d.broad.items : [], "g-broad", true));
       $("g-broad").style.display = d.broad && d.broad.items.length ? "" : "none";
+      $("g-rel").parentElement.style.gridTemplateColumns = d.broad && d.broad.items.length ? "" : "1fr";
     }
     const alpha = $("alpha"); alpha.textContent = "";
     if (d.alphabet.length) {
@@ -481,7 +482,8 @@ ol.top10 li span.q { flex: 1; }
       const a0 = (i / n) * Math.PI * 2 - Math.PI / 2 + gap, a1 = ((i + 1) / n) * Math.PI * 2 - Math.PI / 2 - gap;
       const p = (r, a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
       const [x0, y0] = p(r1, a0), [x1, y1] = p(r1, a1), [x2, y2] = p(r0, a1), [x3, y3] = p(r0, a0);
-      const d = "M" + x0 + " " + y0 + " A" + r1 + " " + r1 + " 0 0 1 " + x1 + " " + y1 + " L" + x2 + " " + y2 + " A" + r0 + " " + r0 + " 0 0 0 " + x3 + " " + y3 + " Z";
+      const large = a1 - a0 > Math.PI ? 1 : 0;
+      const d = "M" + x0 + " " + y0 + " A" + r1 + " " + r1 + " 0 " + large + " 1 " + x1 + " " + y1 + " L" + x2 + " " + y2 + " A" + r0 + " " + r0 + " 0 " + large + " 0 " + x3 + " " + y3 + " Z";
       const grp = mk("g", { class: "seg", tabindex: "0", role: "button", "aria-label": cap(g.mot) + " : " + g.items.length + " recherches" });
       grp.setAttribute("data-idx", g.idx);
       grp.appendChild(mk("path", { d, fill: COLORS[g.idx] }));
