@@ -66,7 +66,11 @@ module.exports = async (req, res) => {
   const add = (query, source) => { const idx = jobs.length; jobs.push(() => suggest(query, source)); return idx; };
 
   const base = add(q, "google");
-  const qIdx = QUESTION_PREFIXES.map(([, prefixes]) => prefixes.map((p) => add(p + " " + q, "google")));
+  // Le mot-clé derrière le mot interrogatif (« comment action de formation »),
+  // puis devant (« action de formation comment »), formulation fréquente pour les expressions longues
+  const SUFFIX = new Set(["comment", "pourquoi", "quel", "quelle", "combien", "quand", "où", "qui"]);
+  const qIdx = QUESTION_PREFIXES.map(([, prefixes]) => prefixes.flatMap((p) =>
+    [add(p + " " + q, "google")].concat(SUFFIX.has(p) ? [add(q + " " + p, "google")] : [])));
   const pIdx = PREPOSITIONS.map((p) => add(q + " " + p, "google"));
   const cIdx = COMPARISONS.map((c) => add(q + " " + c, "google"));
   const aIdx = LETTERS.map((l) => add(q + " " + l, "google"));
